@@ -84,9 +84,9 @@ html
           code.language-javascript.
             // Pdo::FETCH_ALL
             array(
-                1 => '1',
+                0 => '1',
                 'id' => '1',
-                2 => 'picasso',
+                1 => 'picasso',
                 'name' => 'picasso',
             )
 
@@ -235,7 +235,7 @@ html
                 $func = function($b) use ($a, &$c) {
                     // ...
                     $c = 5;
-                }
+                };
             }
           
       section
@@ -517,11 +517,12 @@ html
         h2 用途: Yii ORM 的痒痒
         pre
           code.language-javascript.
-            class OrmBase() {
+            class OrmBase {
+                public static $tableName;
                 public static function getTableName() {
                     if (static::$tableName) return static::$tableName;
-                    $under = preg_replace('/[A-Z]/', '$0_', 
-                                          get_called_class());
+                    $under = preg_replace('/[A-Z]/', '_$0', 
+                                        lcfirst(get_called_class()));
                     return strtolower($under);
                 }
             }
@@ -576,9 +577,9 @@ html
             class OrmBase() {
                 public static function getTableName() {
                     if (static::$tableName) return static::$tableName;
-                    $pure = substr(
-                              get_called_class(), len(__NAMESPACE__));
-                    $under = preg_replace('/[A-Z]/', '$0_', $pure);
+                    $pure = lcfirst(substr(
+                              get_called_class(), len(__NAMESPACE__)));
+                    $under = preg_replace('/[A-Z]/', '_$0', $pure);
                     return strtolower($under);
                 }
             }
@@ -611,7 +612,7 @@ html
             $foo->baz = 1; // 如有定义, 按照定义. (可见范围按照继承关系)
             $foo->x = 2;   // 如果有 `__set()` 魔术方法, 使用此.
             $foo->bar = 3; // 生成 public 属性(但如有private, 会报错)
-            
+
             // 获取属性和isset属性类似此
 
     script(src='build/build.js')
