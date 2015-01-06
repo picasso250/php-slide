@@ -1,0 +1,617 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1, maximum-scale=1')
+    title PHP the good part
+
+    link(rel='stylesheet', type='text/css', href='build/build.css')
+
+  body
+
+    article
+
+      section
+        h1 PHP 避坑 & 技巧
+
+      section
+        h2 错误处理
+        ul
+          li error
+          li Exception
+          li log
+
+      section
+        h2 不遗漏报错
+        pre
+          code.language-javascript.
+            error_reporting(E_ALL);
+            ini_set('log_errors', 1); // 记录错误
+            ini_set('error_log', __DIR__.'/php_error.log'); // log的位置
+
+      section
+        h2 error_log() 函数
+        pre
+          code.language-javascript.
+            error_log("message")
+            error_log("message\n", 3, 'log_file');
+
+      section
+        h2 总是使用Exception
+        pre
+          code.language-javascript.
+            function try_json_decode($str)
+            {
+                $arr = json_decode($str, true);
+                if (json_last_error()) {
+                    throw new Exception(
+                        "json decode error", 
+                        json_last_error());
+                }
+                return $arr;
+            }
+
+      section
+        h2 总是使用Exception
+        pre
+          code.language-javascript.
+            // 默认是 PDO::ERRMODE_SILENT 坑!
+            $dbh = new PDO($dsn, $user, $password);
+            $dbh->setAttribute(
+                PDO::ATTR_ERRMODE, 
+                PDO::ERRMODE_EXCEPTION);
+
+      section
+        h2 调用栈
+        pre
+          code.language-javascript.
+            $trace = implode("\n".' <== ', array_map(function($e){
+                    $func = isset($e['class']) ? 
+                        "$e[class]::$e[function]"
+                        : $e['function'];
+                    return "$e[file]:$e[line] $func";
+                }, debug_backtrace()));
+            // you can echo "$trace" now
+            // like $exception->getTrace()
+            // you can print it in error_handler
+
+      section
+        h2 数组
+
+      section
+        h2 hash table
+        pre
+          code.language-javascript.
+            // Pdo::FETCH_ALL
+            array(
+                1 => '1',
+                'id' => '1',
+                2 => 'picasso',
+                'name' => 'picasso',
+            )
+
+      section
+        h2 int 或 string 键是相同的
+        pre
+          code.language-javascript.
+            $a['1'] = 'foo';
+            $a[1] = 'foo'; // exactly the same
+            $a['1'] = 'bar'; // now $a[1] === 'bar'
+
+      section
+        h2 foreach 的顺序
+        pre
+          code.language-javascript.
+            $a[2] = 'a';
+            $a[1] = 'b';
+            $a[] = 'c'; // $a[3] 不是 $a[0]
+            print_r($a);
+            foreach ($a as $k => $v) {
+                echo "$k => $v\n"; // 顺序 a b c
+            }
+      section
+        h2 判断数组是否拥有某个key
+        pre
+          code.language-javascript.
+            isset($arr[$key]);
+            array_key_exists($key, $arr);
+            
+      section
+        h2 foreach 中修改数组
+        pre
+          code.language-javascript.
+            foreach ($arr as $key => $value) {
+                $arr[$key] = $new_value;
+            }
+
+            foreach ($arr as $key => &$value) { // 可以不管 key
+                $value = $new_value;
+            }
+
+      section
+        h2 另一种遍历方式
+        pre
+          code.language-javascript.
+            reset($arr);
+            while(key($arr) !== null) {
+                $value = current($arr);
+                next($arr);
+            }
+
+      section
+        h2 不要在 foreach 中 unset
+        pre
+          code.language-javascript.
+            reset($arr);
+            while(($key = key($arr)) !== null) {
+                if (i_want()) {
+                    unset($arr[$key]);
+                } else { // 注意这个 else
+                    next($arr);
+                    continue;
+                }
+            }
+
+      section
+        h2 数据结构
+        ul
+          li 当栈用 array_pop() array_push()
+          li 当队列用还要再加上 array_shift() array_unshift()
+          li array_merge(a, b) 相当于 a+b 但 真的和+号不同
+          li array_intersect(a,b) 相当于 a和b 的交集
+          li array_diff(a,b) 相当于 a−b 但没有-号
+          li array_slice() 数组切片
+
+      section
+        h2 "高级"特性
+        pre
+          code.language-javascript.
+            array_map($func, $arr);
+            array_filter($arr, $func);
+            array_reduce($arr, $func);
+
+            // array_map() 可以作用于关联数组(dict), python can't
+            array_map(function($e){return $e.'appendix';}, $arr);
+      
+      section
+        h2 字符串解析
+        pre
+          code.language-javascript.
+            "$a[42] $a[foo] {$a['foo']}"
+            "$this->prop {$this->method('hello')}" // what the fuck
+            
+      section
+        h2 array_map() 回调不知道 key
+        pre
+          code.language-javascript.
+            // [k+'='+v for k,v in d.items()]
+            $func = function($k, $v) {return "$k=$v";};
+            array_map($func, array_keys($arr), array_values($arr)));
+
+      section
+        h2 in_array() 是线性时间
+        pre
+          code.language-javascript.
+            // 将 key value 反过来
+            $look_up_table = array_flip($arr);
+            // much faster in a for loop
+            isset($look_up_table[$search_value]);
+
+      section
+        h2 排序
+        ul
+          li sort()
+          li rsort()
+          li asort()
+          li arsort()
+          li usort()
+          li uasort()
+          li uksort()
+      section
+        h2 自定义排序
+        pre
+          code.language-javascript.
+            usort(function($a, $b){return $a > $b;}, $arr);
+
+      section
+        h2 语法糖
+        pre
+          code.language-javascript.
+            empty(func()); // not before 5.4
+
+            return_array()[3]; // not before 5.4
+
+            (new Foo())->doSomething(); // not before 5.4
+
+            $a = [1, 2, 3]; // not before 5.4
+
+      section
+        h2 闭包
+        pre
+          code.language-javascript.
+            function foo() {
+                $a = 3;
+                $c = 4;
+                $func = function($b) use ($a, &$c) {
+                    // ...
+                    $c = 5;
+                }
+            }
+          
+      section
+        h2 函数
+
+      section
+        h2 多个返回值
+        pre
+          code.language-javascript.
+            list($a, $b) = [$b, $a]; // swap
+            list($data, $err) = go_style_func();
+
+      section
+        h2 可变参数 (override)
+        pre
+          code.language-javascript.
+            // 在 Java 中实现的很优雅
+            public void prop(String key); // get
+            public void prop(String key, String value); // set
+
+            //在PHP中就比较丑陋, 和 JS 中一样
+            function prop($key)
+            {
+                if (func_num_args() === 1) {
+                    // get
+                } else {
+                    $value = func_get_arg(1);
+                    // set
+                }
+            }
+            
+      section
+        h2 元编程
+
+      section
+        h2 动态访问变量
+        pre
+          code.language-javascript.
+            $name = 'foo';
+            $$name = 'bar';
+            var_dump($foo);
+          
+      section
+        h2 动态调用方法
+        pre
+          code.language-javascript.
+            ${'array_push'}($arr, $e);
+            call_user_func('array_unshift', $arr, $e);
+            call_user_func_array('array_unshift', [$arr, $e]);
+
+            (function(){})();
+            call_user_func(function(){});
+
+            // $pdo->{'prepare'}($sql);
+            call_user_func([$pdo, 'prepare'], $sql);
+
+            // no Pdo::{'getAvailableDrivers'}();
+            forward_static_call(['Pdo', 'getAvailableDrivers']);
+
+      section
+        h2 动态调用方法
+        pre
+          code.language-javascript.
+            $a = [1, 2, 3, 4]; $b = [1, 4, 9, 16];
+            $c = [1, 8, 24, 64]; $d = [1, 16, 81, 256];
+            $args = [$a, $b, $c, $d]; // count($args) can vary
+            array_unshift($args, function() {
+                return implode(' => ', func_get_args());
+            });
+            $chains = call_user_func_array('array_map', $args);
+
+            // the same
+            for($i = 0, $n = count($a); $i<$n; $i++)
+                $chains[] = "$a => $b => $c => $d";
+
+      section
+        h2 不要用反射类
+        pre
+          code.language-javascript.
+            // 类名, 函数名和方法名不区分大小写...
+            $class = 'PDO'; 
+            $pdo = new $class(); // namespace要写全
+            $method = "prepare";
+            $pdo->$method($sql);
+
+            get_class_methods('Pdo');
+            get_class_methods($pdo);
+
+      section
+        h2 披着函数皮的语言结构
+        ul
+          li array()
+          li echo
+          li empty()
+          li eval()
+          li exit()
+          li isset()
+          li list()
+          li print
+          li unset()
+
+      
+      section
+        h2 类型转换
+        pre
+          code.language-javascript.
+            intval()
+            $n="19.99";intval($n*100); // prints 1998 // round()
+            
+            boolval()
+            doubleval(), floatval()
+            strval()
+
+            (array)
+
+      section
+        h2 类型判断
+        pre
+          code.language-javascript.
+            get_type(),
+            is_int(), is_long(), is_integer()
+            is_array()
+            is_bool()
+            is_double(), is_float(), is_real()
+            is_null() // prefer === null
+            is_object()
+            is_string()
+            is_callable()
+            is_numeric()
+            is_resource()
+            is_scalar()
+      section
+        h2 序列化
+        pre
+          code.language-javascript.
+            serialize() 和 unserialize() // faster
+            json_decode() 和 json_encode() 也可以.
+
+            var_export($var, true) 生成可以被PHP解析的代码.
+            // 下面是反面教材, it's complex and slow
+            file_put_contents(
+              'config.php', 
+              '<'.'?php return '.var_export($config, true));
+      section
+        h2 输入输出过滤
+      section
+        h2 如何优雅的验证email
+        pre
+          code.language-javascript.
+            var_dump(
+              filter_var('bob@example.com', FILTER_VALIDATE_EMAIL));
+            var_dump(
+              filter_var('http://example.com',
+              FILTER_VALIDATE_URL,
+              FILTER_FLAG_PATH_REQUIRED));
+      section
+        h2 普通青年这样处理输入
+        pre
+          code.language-javascript.
+            if (empty($_GET['name']) {
+                // ... report to user
+            } else {
+                $name = $_GET['name'];
+            }
+      section
+        h2 弱类型的难言之隐
+        pre
+          code.language-javascript.
+            if (!isset($_GET['val']) || $_GET['val'] === '') {
+                // ... report to user
+            } elseif (!preg_match('/^[+-]?\d+$/', $_GET['val']) {
+                // ... report to user
+            }
+      section
+        h2 PHP总会提供解决方案
+        pre
+          code.language-javascript.
+            $options = array(
+                'options' => array(
+                    'default' => 3, // return 3 when filter fails
+                    // other options here
+                    'min_range' => 0
+                ),
+                'flags' => FILTER_FLAG_ALLOW_OCTAL,
+            );
+            $val = filter_input(
+                INPUT_GET, 
+                'val', 
+                FILTER_VALIDATE_INT, 
+                $options);
+            if ($val === null) {
+                // not set
+            } elseif ($val === false) {
+                // not valid
+            } else {
+                // ok
+      section
+        h2 验证类型
+        pre
+          code.language-javascript.
+            FILTER_VALIDATE_BOOLEAN // 1/true/on/yes/0/false/off/no/''
+            FILTER_VALIDATE_EMAIL
+            FILTER_VALIDATE_FLOAT
+            FILTER_VALIDATE_IP     // v4 v6 都支持
+            FILTER_VALIDATE_REGEXP // 使用正则来判断
+            FILTER_VALIDATE_URL
+      section
+        h2 面向对象
+
+      section
+        h2 一点热身
+        pre
+          code.language-javascript.
+            $o = new stdClass();
+            $o = new stdClass; // exactly the same
+
+      section
+        h2 子类覆盖父类
+        pre
+          code.language-javascript.
+            class A { public function foo(){} } // 我是你爸爸
+            class B extends A { public function foo(){} }
+            class C extends A {}
+            (new B)->foo();
+            (new C)->foo();
+      section
+        h2 邪恶的继承
+        pre
+          code.language-javascript.
+            class A { public function foo() { $this->bar(); } }
+            class B extends A { 
+                protected function bar(){ 
+                    // do some evil
+                }
+            }
+            (new B)->foo();
+
+      section
+        h2 static 继承
+        pre
+          code.language-javascript.
+            class A { public static function foo(){} } // 我是你爸爸
+            class B extends A { public static function foo(){} }
+            class C extends A {}
+            B::foo();
+            C::foo();
+
+      section
+        h2 不邪恶, 但是也失去多态
+        pre
+          code.language-javascript.
+            class A {
+                public static function foo() { self::bar(); }
+                public static function bar() { /* good */ }
+            }
+            class B extends A { 
+                public static function bar(){ /* do some evil */ } 
+            }
+            B::foo(); // I am good
+      section
+        h2 静态延迟绑定
+        pre
+          code.language-javascript.
+            class A { 
+                public static function foo() { static::bar(); } 
+            }
+
+      section
+        h2 用途: Yii ORM 做的不好的地方
+        pre
+          code.language-javascript.
+            class UserTask extends OrmBase {} // 默认表名 user_task
+            class UserHost extends OrmBase {
+                public static $tableName = 'userhost';
+            } // 指定表名 userhost
+            // getTableName() 方法怎么定义?
+
+      section
+        h2 用途: Yii ORM 的痒痒
+        pre
+          code.language-javascript.
+            class OrmBase() {
+                public static function getTableName() {
+                    if (static::$tableName) return static::$tableName;
+                    $under = preg_replace('/[A-Z]/', '$0_', 
+                                          get_called_class());
+                    return strtolower($under);
+                }
+            }
+
+      section
+        h2 运行时类名
+        pre
+          code.language-javascript.
+            get_called_class() // 返回运行时类名.
+            get_class() // 返回字面量类名, 等同于 __CLASS__
+            __CLASS__ // 定义时的类名, 带命名空间哟
+            __METHOD__ // 类的方法名 Foo::bar
+            __NAMESPACE__ // 当前命名空间的名称
+            __FUNCTION__ // 定义时的函数名
+            __LINE__ // 当前行号
+            __FILE__ // 当前文件名(路径)
+            __DIR__ // 当前目录
+
+      section
+        h2 命名空间
+
+      section
+        h2 三种受影响的元素
+        pre
+          code.language-javascript.
+            namespace MyProject\Xiaochi;
+
+            const CONNECT_OK = 1;             // 常量
+            class Connection { /* ... */ }    // 类
+            function connect() { /* ... */  } // 函数
+
+            // 命名空间完全向前兼容!
+
+      section
+        h2 访问全局命名空间
+        pre
+          code.language-javascript.
+            namespace MyProject\Xiaochi;
+
+            class Foo {
+                public function { 
+                    // no class \MyProject\Xiaochi\Exception
+                    throw new Exception('Ah!'); // wrong
+                    throw new \Exception('Ah!'); // ok
+                }
+            }
+
+      section
+        h2 命名空间下的 ORM 表名
+        pre
+          code.language-javascript.
+            class OrmBase() {
+                public static function getTableName() {
+                    if (static::$tableName) return static::$tableName;
+                    $pure = substr(
+                              get_called_class(), len(__NAMESPACE__));
+                    $under = preg_replace('/[A-Z]/', '$0_', $pure);
+                    return strtolower($under);
+                }
+            }
+
+      section
+        h2 属性赋值规则
+        pre
+          code.language-javascript.
+            $o = new stdClass;
+            $o->foo = 'bar';
+            print_r($o);
+
+      section
+        h2 属性赋值规则
+        pre
+          code.language-javascript.
+            class Foo() {
+                public $baz;
+                public function __set($name, $value) {
+                    $this->data[$name] = $value;
+                }
+                private $bar;
+            }
+
+      section
+        h2 属性赋值规则
+        pre
+          code.language-javascript.
+            $foo = new Foo();
+            $foo->baz = 1; // 如有定义, 按照定义. (可见范围按照继承关系)
+            $foo->x = 2;   // 如果有 `__set()` 魔术方法, 使用此.
+            $foo->bar = 3; // 生成 public 属性(但如有private, 会报错)
+            
+            // 获取属性和isset属性类似此
+
+    script(src='build/build.js')
